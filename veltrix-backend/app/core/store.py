@@ -54,9 +54,37 @@ def add_alert(alert: Dict[str, Any]) -> None:
             _alerts.pop()
 
 
-def get_alerts(limit: int = 50, source_prefix: str = None) -> List[Dict[str, Any]]:
-    if not source_prefix:
-        return _alerts[:limit]
+def get_alerts(
+    limit: int = 50,
+    source_prefix: str = None,
+    source_contains: str = None,
+) -> List[Dict[str, Any]]:
+    filtered = _alerts
 
-    filtered = [a for a in _alerts if str(a.get("source", "")).startswith(source_prefix)]
+    if source_prefix:
+        filtered = [a for a in filtered if str(a.get("source", "")).startswith(source_prefix)]
+
+    if source_contains:
+        source_contains_lower = source_contains.lower()
+        filtered = [a for a in filtered if source_contains_lower in str(a.get("source", "")).lower()]
+
     return filtered[:limit]
+
+
+def clear_alerts(source_prefix: str = None, source_contains: str = None) -> int:
+    with _lock:
+        if not source_prefix and not source_contains:
+            cleared = len(_alerts)
+            _alerts.clear()
+            return cleared
+
+        before = len(_alerts)
+
+        def should_delete(alert: Dict[str, Any]) -> bool:
+            source = str(alert.get("source", ""))
+            matches_prefix = source_prefix and source.startswith(source_prefix)
+            matches_contains = source_contains and source_contains.lower() in source.lower()
+            return bool(matches_prefix or matches_contains)
+
+        _alerts[:] = [a for a in _alerts if not should_delete(a)]
+        return before - len(_alerts)

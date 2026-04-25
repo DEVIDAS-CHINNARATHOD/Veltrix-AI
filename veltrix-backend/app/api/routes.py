@@ -208,10 +208,16 @@ async def check_block(url: str = None, sender: str = None):
 
 
 @router.get("/alerts")
-async def get_alerts(limit: int = 50, source_prefix: str = None):
-    alerts = store.get_alerts(limit=limit, source_prefix=source_prefix)
-    total = len(store.get_alerts(limit=1000, source_prefix=source_prefix))
+async def get_alerts(limit: int = 50, source_prefix: str = None, source_contains: str = None):
+    alerts = store.get_alerts(limit=limit, source_prefix=source_prefix, source_contains=source_contains)
+    total = len(store.get_alerts(limit=1000, source_prefix=source_prefix, source_contains=source_contains))
     return {"alerts": alerts, "total": total}
+
+
+@router.delete("/alerts")
+async def clear_alerts(source_prefix: str = None, source_contains: str = None):
+    cleared = store.clear_alerts(source_prefix=source_prefix, source_contains=source_contains)
+    return {"success": True, "cleared": cleared}
 
 
 @router.get("/blocked")

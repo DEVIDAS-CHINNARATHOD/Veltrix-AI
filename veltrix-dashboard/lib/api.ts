@@ -79,13 +79,37 @@ export async function blockSender(sender: string): Promise<{ success: boolean; m
   return res.json();
 }
 
-export async function getAlerts(limit = 50, sourcePrefix?: string): Promise<{ alerts: AlertItem[]; total: number }> {
+export async function getAlerts(
+  limit = 50,
+  sourcePrefix?: string,
+  sourceContains?: string,
+): Promise<{ alerts: AlertItem[]; total: number }> {
   const params = new URLSearchParams({ limit: String(limit) });
   if (sourcePrefix) {
     params.set('source_prefix', sourcePrefix);
   }
+  if (sourceContains) {
+    params.set('source_contains', sourceContains);
+  }
   const res = await fetch(`${API_PROXY_BASE}/alerts?${params.toString()}`);
   if (!res.ok) throw new Error('Failed to fetch alerts');
+  return res.json();
+}
+
+export async function clearAlerts(
+  sourcePrefix?: string,
+  sourceContains?: string,
+): Promise<{ success: boolean; cleared: number }> {
+  const params = new URLSearchParams();
+  if (sourcePrefix) {
+    params.set('source_prefix', sourcePrefix);
+  }
+  if (sourceContains) {
+    params.set('source_contains', sourceContains);
+  }
+  const suffix = params.toString() ? `?${params.toString()}` : '';
+  const res = await fetch(`${API_PROXY_BASE}/alerts${suffix}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error('Failed to clear alerts');
   return res.json();
 }
 

@@ -1,9 +1,11 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { getAlerts, getBlocked, checkHealth, AlertItem, getLabelBg, getLabelText } from '@/lib/api';
+import { getAlerts, getBlocked, checkHealth, clearAlerts, AlertItem, getLabelBg, getLabelText } from '@/lib/api';
 import Sidebar from '@/components/Sidebar';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { formatDistanceToNow } from 'date-fns';
+
+const SCAN_SOURCE_CONTAINS = 'scan';
 
 export default function DashboardPage() {
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
@@ -11,13 +13,14 @@ export default function DashboardPage() {
   const [health, setHealth] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [clearing, setClearing] = useState(false);
 
   useEffect(() => {
     async function load() {
       try {
         setError(null);
         const [alertsData, blockedData, healthOk] = await Promise.all([
-          getAlerts(100, 'dashboard_scan'),
+          getAlerts(100, undefined, SCAN_SOURCE_CONTAINS),
           getBlocked(),
           checkHealth(),
         ]);
@@ -35,6 +38,21 @@ export default function DashboardPage() {
     const interval = setInterval(load, 10000);
     return () => clearInterval(interval);
   }, []);
+
+  async function handleClearOldAlerts() {
+    if (alerts.length === 0 || clearing) return;
+
+    try {
+      setClearing(true);
+      setError(null);
+      await clearAlerts(undefined, SCAN_SOURCE_CONTAINS);
+      setAlerts([]);
+    } catch (e: any) {
+      setError(e?.message || 'Failed to clear old alerts');
+    } finally {
+      setClearing(false);
+    }
+  }
 
   const phishingCount = alerts.filter(a => a.label === 'phishing').length;
   const suspiciousCount = alerts.filter(a => a.label === 'suspicious').length;
@@ -223,7 +241,16 @@ export default function DashboardPage() {
             <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
               <div className="p-5 border-b border-slate-200 flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-slate-700">Recent Alerts</h2>
-                <span className="text-[10px] text-slate-500 font-mono">{alerts.length} total</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-slate-500 font-mono">{alerts.length} total</span>
+                  <button
+                    onClick={handleClearOldAlerts}
+                    disabled={alerts.length === 0 || clearing}
+                    className="px-2.5 py-1 rounded-md border border-slate-300 text-[10px] font-semibold text-slate-600 hover:bg-slate-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {clearing ? 'Clearing...' : 'Clear Old Alerts'}
+                  </button>
+                </div>
               </div>
               <div className="divide-y divide-slate-200">
                 {alerts.length === 0 ? (
