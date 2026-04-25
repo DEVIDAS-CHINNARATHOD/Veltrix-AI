@@ -40,21 +40,22 @@ export async function analyzeText(
   urls: string[] = [],
   sender?: string,
   subject?: string,
+  source?: string,
 ): Promise<AnalysisResult> {
   const res = await fetch(`${API_PROXY_BASE}/analyze-text`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, urls, sender, subject }),
+    body: JSON.stringify({ text, urls, sender, subject, source }),
   });
   if (!res.ok) throw new Error(`Analysis failed: ${res.status}`);
   return res.json();
 }
 
-export async function analyzeUrl(url: string): Promise<AnalysisResult> {
+export async function analyzeUrl(url: string, source?: string): Promise<AnalysisResult> {
   const res = await fetch(`${API_PROXY_BASE}/analyze-url`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url }),
+    body: JSON.stringify({ url, source }),
   });
   if (!res.ok) throw new Error(`URL analysis failed: ${res.status}`);
   return res.json();
@@ -78,8 +79,12 @@ export async function blockSender(sender: string): Promise<{ success: boolean; m
   return res.json();
 }
 
-export async function getAlerts(limit = 50): Promise<{ alerts: AlertItem[]; total: number }> {
-  const res = await fetch(`${API_PROXY_BASE}/alerts?limit=${limit}`);
+export async function getAlerts(limit = 50, sourcePrefix?: string): Promise<{ alerts: AlertItem[]; total: number }> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (sourcePrefix) {
+    params.set('source_prefix', sourcePrefix);
+  }
+  const res = await fetch(`${API_PROXY_BASE}/alerts?${params.toString()}`);
   if (!res.ok) throw new Error('Failed to fetch alerts');
   return res.json();
 }

@@ -54,5 +54,9 @@ def add_alert(alert: Dict[str, Any]) -> None:
             _alerts.pop()
 
 
-def get_alerts(limit: int = 50) -> List[Dict[str, Any]]:
-    return _alerts[:limit]
+def get_alerts(limit: int = 50, source_prefix: str = None) -> List[Dict[str, Any]]:
+    if not source_prefix:
+        return _alerts[:limit]
+
+    filtered = [a for a in _alerts if str(a.get("source", "")).startswith(source_prefix)]
+    return filtered[:limit]

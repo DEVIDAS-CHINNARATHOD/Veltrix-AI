@@ -30,6 +30,7 @@ async def health():
 @router.post("/analyze-text", response_model=AnalysisResponse)
 async def analyze_text(req: AnalyzeTextRequest):
     try:
+        alert_source = req.source or "text_scan"
         result = predict(
             text=req.text,
             urls=req.urls or [],
@@ -45,12 +46,14 @@ async def analyze_text(req: AnalyzeTextRequest):
             result["score"] = 100
             result["reasons"] = ["Sender is on your blocklist"] + result.get("reasons", [])
 
-        if result["label"] in ("phishing", "suspicious"):
+        should_store_alert = result["label"] in ("phishing", "suspicious") or alert_source.startswith("dashboard_scan")
+
+        if should_store_alert:
             store.add_alert({
                 "id": str(uuid.uuid4()),
                 "label": result["label"],
                 "score": result["score"],
-                "source": "text_scan",
+                "source": alert_source,
                 "subject": req.subject,
                 "sender": req.sender,
                 "reasons": result["reasons"][:3],
@@ -88,6 +91,7 @@ async def analyze_batch(req: AnalyzeBatchRequest):
         response_results = []
         for i, result in enumerate(results):
             item = req.items[i]
+            alert_source = item.source or "batch_scan"
             sender_blocked = store.is_sender_blocked(item.sender) if item.sender else False
             url_blocked = any(store.is_url_blocked(u) for u in (item.urls or []))
 
@@ -96,12 +100,14 @@ async def analyze_batch(req: AnalyzeBatchRequest):
                 result["score"] = 100
                 result["reasons"] = ["Sender is on your blocklist"] + result.get("reasons", [])
 
-            if result["label"] in ("phishing", "suspicious"):
+            should_store_alert = result["label"] in ("phishing", "suspicious") or alert_source.startswith("dashboard_scan")
+
+            if should_store_alert:
                 store.add_alert({
                     "id": str(uuid.uuid4()),
                     "label": result["label"],
                     "score": result["score"],
-                    "source": "batch_scan",
+                    "source": alert_source,
                     "subject": item.subject,
                     "sender": item.sender,
                     "reasons": result["reasons"][:3],
@@ -127,6 +133,7 @@ async def analyze_batch(req: AnalyzeBatchRequest):
 @router.post("/analyze-url", response_model=AnalysisResponse)
 async def analyze_url(req: AnalyzeUrlRequest):
     try:
+        alert_source = req.source or "url_scan"
         url_risk, url_reasons = _analyze_url_risk(req.url)
         risk_score = int(url_risk * 100)
 
@@ -148,12 +155,14 @@ async def analyze_url(req: AnalyzeUrlRequest):
 
         url_blocked = store.is_url_blocked(req.url)
 
-        if label in ("phishing", "suspicious"):
+        should_store_alert = label in ("phishing", "suspicious") or alert_source.startswith("dashboard_scan")
+
+        if should_store_alert:
             store.add_alert({
                 "id": str(uuid.uuid4()),
                 "label": label,
                 "score": risk_score,
-                "source": "url_scan",
+                "source": alert_source,
                 "subject": None,
                 "sender": None,
                 "reasons": url_reasons[:3],
@@ -199,8 +208,10 @@ async def check_block(url: str = None, sender: str = None):
 
 
 @router.get("/alerts")
-async def get_alerts(limit: int = 50):
-    return {"alerts": store.get_alerts(limit), "total": len(store.get_alerts(1000))}
+async def get_alerts(limit: int = 50, source_prefix: str = None):
+    alerts = store.get_alerts(limit=limit, source_prefix=source_prefix)
+    total = len(store.get_alerts(limit=1000, source_prefix=source_prefix))
+    return {"alerts": alerts, "total": total}
 
 
 @router.get("/blocked")

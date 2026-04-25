@@ -7,11 +7,13 @@ class AnalyzeTextRequest(BaseModel):
     urls: Optional[List[str]] = []
     sender: Optional[str] = None
     subject: Optional[str] = None
+    source: Optional[str] = None
     language: Optional[str] = "auto"
 
 
 class AnalyzeUrlRequest(BaseModel):
     url: str = Field(..., min_length=1)
+    source: Optional[str] = None
 
 
 class BlockUrlRequest(BaseModel):
@@ -64,6 +66,7 @@ class AnalyzeBatchItem(BaseModel):
     urls: Optional[List[str]] = []
     sender: Optional[str] = None
     subject: Optional[str] = None
+    source: Optional[str] = None
 
 
 class AnalyzeBatchRequest(BaseModel):

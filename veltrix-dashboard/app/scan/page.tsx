@@ -26,8 +26,14 @@ export default function ScanPage() {
     setLoading(true);
     try {
       const res = mode === 'url'
-        ? await analyzeUrl(url.trim())
-        : await analyzeText(text.trim(), url.trim() ? [url.trim()] : [], sender.trim() || undefined, subject.trim() || undefined);
+        ? await analyzeUrl(url.trim(), 'dashboard_scan_url')
+        : await analyzeText(
+          text.trim(),
+          url.trim() ? [url.trim()] : [],
+          sender.trim() || undefined,
+          subject.trim() || undefined,
+          'dashboard_scan_text',
+        );
       setResult(res);
     } catch (e: any) {
       setError(e.message || 'Analysis failed. Is the backend running?');

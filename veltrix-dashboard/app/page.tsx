@@ -17,7 +17,7 @@ export default function DashboardPage() {
       try {
         setError(null);
         const [alertsData, blockedData, healthOk] = await Promise.all([
-          getAlerts(100),
+          getAlerts(100, 'dashboard_scan'),
           getBlocked(),
           checkHealth(),
         ]);
