@@ -44,6 +44,11 @@ After uploading, this markdown link will work directly from the repository:
 
 - [Watch Demo Video](Documentation/demo/demo-video.mp4)
 
+## Documentation
+
+- [Project Report](Documentation/repoart.md)
+- [Project Report (PDF)](Documentation/Veltrix_AI_Project_Report.pdf)
+
 ## Core Features
 
 - Real-time Gmail email scanning in the browser.
